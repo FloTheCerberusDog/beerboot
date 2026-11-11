@@ -89,7 +89,7 @@ Then open http://localhost:8000. Ruby comes with macOS.
 - **Live site:** https://flothecerberusdog.github.io/beerboot/
 - **Code:** https://github.com/FloTheCerberusDog/beerboot. **Public**, so anyone can read every file in this folder, CLAUDE.md included. Never put secrets or personal details in the repo.
 - GitHub Pages serves the `main` branch root ("legacy" build). `.nojekyll` makes it serve files as they are. **Pushing to `main` updates the site**, usually within a minute or two.
-- If a Pages build shows `startup_failure` (it happened on 2026-11-11 with no reason given), request a new build: `~/.local/bin/gh api -X POST repos/FloTheCerberusDog/beerboot/pages/builds`, or push again. The reason is only visible to the signed-in owner on the repo's Actions page.
+- Builds can be slow or flaky: on 2026-11-11 two showed `startup_failure` and the next sat "queued" for about 6 minutes before going live (no account problem; the owner checked the Actions page). If one fails, request a new build: `~/.local/bin/gh api -X POST repos/FloTheCerberusDog/beerboot/pages/builds`, or push again. The reason is only visible to the signed-in owner on the repo's Actions page.
 - The site uses free public services (OpenFreeMap, Photon, routing.openstreetmap.de) that have fair-use limits. That's fine for a hobby app; if it gets busy, switch to a paid or own provider.
 
 ## Git
