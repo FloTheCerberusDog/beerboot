@@ -8,71 +8,69 @@ A learning project. The owner is new to AI and Claude Code. Explain steps in pla
 
 ### The app: BeerBoot (beer pub crawl routes)
 
-The app is called **BeerBoot** (renamed from "Pub Crawl" on 2026-11-11). "Pub crawl" is still used for the activity itself, e.g. "Pub crawls in São Paulo". The storage key `pubcrawl.saved.v1` keeps its old name on purpose: renaming it would make existing saved routes disappear.
+The app is called **BeerBoot** (renamed from "Pub Crawl" on 2026-11-11). "Pub crawl" / "crawl" is still used for the activity itself. The storage key `pubcrawl.saved.v1` keeps its old name on purpose: renaming it would make existing saved routes disappear.
 
-A website (mobile-first, works on a phone browser) for beer pub crawls: a route of several bars in a city that you walk between in one day, having one drink at each. First city: São Paulo, Brazil.
-
-Planned features:
-- See a crawl route on a map, with walking time and distance between bars
-- "Doing this crawl now" mode: check in at each bar, rate it on the spot, see what's next
-- Rate bars
-- Create your own route by searching for bars (no typing addresses)
-- Share routes, follow other people's routes, and comment on them
-- Portuguese and English
-- Drinking basics: 18+ confirmation, "get home" button (Uber / 99), water reminders
+A website (mobile-first, works on a phone browser, installable on the home screen) for beer pub crawls: a route of several bars you walk between in one day, having one drink at each. First city: São Paulo, Brazil. The owner wants it to look **professionally made and premium**; keep that bar for every change.
 
 ### Build plan
 
 1. **Done:** one hard-coded route (Vila Madalena, 5 bars) on a map, with the walking path and PT/EN.
-2. **Done:** create, edit and delete your own routes by searching for bars. Routes are saved in the browser (localStorage). There's a home page listing all routes.
-3. "Doing this crawl now" mode with check-ins and ratings, saved on the device.
-4. Accounts, sharing and comments with Supabase. (**Publishing online is done**, with GitHub Pages instead of Vercel, to need only one account.)
+2. **Done:** create, edit and delete your own routes by searching for bars. Home page listing routes.
+3. **Done (2026-11-11):** "Modern boteco" redesign, plus crawl mode (check in, bottle-cap ratings, next stop, water reminders, Get home), share by link, Best order, Near me, installable app (manifest and service worker).
+4. **Next ideas:** more featured routes (e.g. Augusta/Centro, a Pinheiros craft-beer trail; research real bars first), 18+ confirmation, then accounts, sharing and comments with Supabase.
+
+## Design system ("Modern boteco")
+
+- Colours: bottle green `--green`, lager gold `--gold`, tile white `--bg`/`--tile`, near-black green `--ink`. Night theme: deep green-black with glowing gold. All colours are CSS variables in `styles.css`; never hard-code a colour in a component.
+- Theme: follows the device, or the person's choice via the sun/moon button (stored in `beerboot.theme`, applied as `data-theme` on `<html>` by a tiny inline script in each page's `<head>`, so there's no flash). Theme changes fire a `beerboot:theme` event; maps restyle themselves on it.
+- Type: Bricolage Grotesque (headings, `.display`) and Figtree (text), from Google Fonts.
+- Logo: a boot-shaped beer glass (`logoSvg()` in `js/common.js`, app icon in `icons/icon.svg`).
+- Markers and ratings: bottle caps (`capSvg(label, state)`, states `""`, `"done"`, `"off"`); colours come from CSS classes, so they follow the theme.
+- Icons: drawn line icons in `ICONS` (`js/common.js`), injected once as an SVG sprite; use `icon("name")` in JS or `<svg class="icon"><use href="#i-name"/></svg>` in HTML. No emoji in the interface.
+- Layout: map pages show a map with a panel overlapping it on phones, and the map left / panel right (460px) from 900px wide.
 
 ## Decisions
 
-- **Website first, not a native phone app.** Easier to build and test; can become an app later.
-- **Bars and routes are separate data.** A bar has its own location and ratings; a route is an ordered list of bar ids. One bar can be on many routes. Later: a "visit" record links a person, a route and a bar.
-- **No build tools for now.** Plain HTML, CSS and JavaScript so the owner can read every file. Revisit (e.g. React/Next.js) when accounts are added in step 4.
-- **Maps:** Leaflet 1.9.4 (from cdnjs) with OpenStreetMap tiles. Free, no API key. OpenStreetMap credit must stay visible on the map.
-- **Walking paths** come from routing.openstreetmap.de (foot profile, free, no key). The built-in route's path is pre-computed in `data/path.js`. In the creator, the path is fetched each time the stops change, then saved with the route. If the service fails, a straight-line estimate (×1.25, 4.5 km/h) is used: shown dashed with "≈".
-- **Bar search** uses Photon (photon.komoot.io, free, no key, OpenStreetMap data). Search is limited to the area visible on the map, and to bars, pubs, beer gardens, breweries and restaurants (many botecos are tagged as restaurants). This means Mapbox isn't needed yet.
-- **Bar ids:** built-in bars use readable ids (`bar-astor`); searched bars use `osm-<type><id>` (e.g. `osm-N2622533015`).
-- **Saved routes** live in localStorage under `pubcrawl.saved.v1` as `{ bars: {id: bar}, routes: [route] }`. Each saved route stores its path. Deleting a route also removes bars no other saved route uses. This storage is per browser; Supabase replaces it in step 4.
-- **Warnings:** a walk over 20 min between bars is flagged as a "long walk"; more than 8 stops shows a gentle reminder.
-- **Bar locations** for the built-in route come from OpenStreetMap (Nominatim). Bar notes are kept short and generic. Opening hours aren't stored; the page tells users to check them.
+- **Website first, not a native phone app.** It can be installed on the home screen (PWA).
+- **Bars and routes are separate data.** A bar has its own location; a route is an ordered list of bar ids. Ratings are per bar (`beerboot.ratings.v1`), so the same bar keeps its rating across crawls.
+- **No build tools for now.** Plain HTML, CSS and JavaScript so the owner can read every file.
+- **Maps:** MapLibre GL 5.24.0 (JS from unpkg, CSS copied to `vendor/`) with OpenFreeMap vector tiles (free, no key): style `positron` by day and `dark` by night, recoloured in `tintMap()`. Map credits must stay available (folded into the "i" button). `createMap()` in `js/common.js` wraps everything: `setPath`, `setStops`, `setDots`, `setActive`, `showMe`, `fit`, `flyTo`. Add our own layers only after the map's `style.load` (tracked by `styleReady`), not `isStyleLoaded()`, which turns true too late.
+- **Walking paths** come from routing.openstreetmap.de (foot profile, free, no key). The built-in route's path is pre-computed in `data/path.js`; saved routes store theirs. If the service fails, a straight-line estimate (×1.25, 4.5 km/h) is used, shown dashed with "≈".
+- **Best order** uses the same service's `trip` endpoint (first bar fixed), falling back to "nearest bar next".
+- **Bar search** uses Photon (photon.komoot.io, free, no key), limited to the visible map area and to bars, pubs, beer gardens, breweries and restaurants (many botecos are tagged as restaurants).
+- **Sharing:** `route.html#s=<base64url JSON>` carries the crawl's name and bars inside the link (no accounts needed). Opening it shows "Shared crawl" with Save; starting the crawl saves a copy first. Featured routes share as `route.html#<id>`.
+- **Crawl mode** progress is per route in `beerboot.crawls.v1`: `{ index, arrived, startedAt, finished, finishedAt }`. Closing and reopening resumes.
+- **Get home** links: Uber `https://m.uber.com/ul/?action=setPickup&pickup=my_location`, 99 `https://99app.com/`.
+- **Service worker** (`sw.js`): network first, saved copy only when offline; never caches maps, search or routing. Bump `CACHE` in `sw.js` if the list of files changes a lot. It doesn't run in the Claude browser pane (that browser refuses service workers), only on the real site.
+- **Bar ids:** built-in bars use readable ids (`bar-astor`); searched bars use `osm-<type><id>`.
+- **Warnings:** a walk over 20 min between bars is a "long walk"; more than 8 stops shows a gentle reminder.
 - **Text:** all interface text is in `TEXT` in `js/common.js` (pt and en). Built-in route titles are `{ en, pt }`; user routes have a single string. `pick()` handles both.
-- User-entered or searched text goes into the page with `textContent` or `escapeHtml()`, never as raw HTML.
+- User-entered, searched or shared text goes into the page with `textContent` or `escapeHtml()`, never as raw HTML.
+- Pages with an id after `#` (route, crawl, create) reload when only the `#` part changes.
 
 ## Structure
 
-- `index.html` + `js/home.js`: home page with featured routes and "My routes". Delete asks for confirmation inside the card, not with `confirm()`.
-- `route.html` + `js/route.js`: shows one route, `route.html#<route id>`. Saved routes get an Edit link.
-- `create.html` + `js/create.js`: route creator. `create.html#<route id>` edits a saved route.
-- Links put the route id after `#` (artifacts only pass that part through). `idFromAddress()` still accepts old `?id=` / `?edit=` links.
-- `vendor/leaflet-1.9.4.min.css`: a local copy of Leaflet's stylesheet (artifacts can't load stylesheets from CDNs). Leaflet's JS still comes from cdnjs.
-- `demo/`: used only by the artifact version. `config.js` turns on demo mode; `bars.js` is 114 bars in Vila Madalena/Pinheiros from OpenStreetMap; `tiles/` holds map images at zoom 14–16 for that area.
-- `tools/build_artifact.py`: builds the artifact version into `dist/artifact/`. `dist/` is ignored by git.
-- `js/common.js`: shared code used by every page: text, language switch, formatting, saving/loading routes, map setup, walking directions
-- `styles.css`: look and feel. Colours are CSS variables on `:root`, with a dark-mode version.
-- `data/routes.js`: `window.BARS` (bars by id) and `window.ROUTES` (built-in routes listing bar ids)
-- `data/path.js`: walking path points and per-leg distance/time for the Vila Madalena route
-- `.claude/launch.json`: preview config for Claude's browser pane (attaches to a server on port 8000)
+- `index.html` + `js/home.js`: home page: hero, featured crawls with mini maps, "My crawls" (resume, edit, delete with an in-card confirmation).
+- `route.html` + `js/route.js`: one crawl, `route.html#<id>` or a shared `route.html#s=...`. Start crawl, Share, Edit (own crawls), Save (shared).
+- `create.html` + `js/create.js`: creator. `create.html#<id>` edits; `create.html#near` starts at your location.
+- `crawl.html` + `js/crawl.js`: crawl mode, `crawl.html#<id>`.
+- `js/common.js`: shared code: text, header/theme, icons, logo, caps, saving, ratings, crawl progress, share links, map, walking directions, best order, toast.
+- `js/pwa.js`, `sw.js`, `manifest.webmanifest`, `icons/`: install on phone and offline support.
+- `styles.css`: the whole design system.
+- `data/routes.js` (built-in bars and routes), `data/path.js` (the built-in route's walking path).
+- `vendor/maplibre-gl-5.24.0.css`: local copy of the map library's stylesheet.
+- `demo/` + `tools/build_artifact.py`: the artifact demo (see below). `dist/` is ignored by git.
+- `.claude/launch.json`: preview config for Claude's browser pane (attaches to a server on port 8000).
 
 ## Artifact (demo version)
 
-- Published at https://claude.ai/artifact/8PhHyennfvs42wYhSHmRmn (private to the owner). First published 2026-11-11.
-- Artifacts block everything from other websites except scripts from a few CDNs: no map tiles, no fetch, no external stylesheets. `confirm()`/`alert()` don't work either. So the artifact runs in **demo mode** (`DEMO` in `js/common.js`):
-  - map images come from `demo/tiles`, and the map is limited to that area (zoom 14–18);
-  - search looks through `demo/bars.js` (ignores accents and capitals, closest first);
-  - walking paths for new routes are straight-line estimates (dashed, "≈"). The built-in route keeps its real path;
-  - routes are saved per browser (localStorage).
-- **To update the artifact:** run `python3 tools/build_artifact.py`, then publish `dist/artifact/index.html` with every other file in `dist/artifact/` passed as `files` (published path = path inside `dist/artifact/`). Republishing the same file path keeps the URL.
-- The build removes `<!doctype>`, `<html>`, `<head>`, `<body>`, charset and viewport from `index.html` only (the viewer adds them). Opened locally, that page shows broken accents, which is expected.
-- Colours follow the artifact viewer's theme through `data-theme` on `<html>`, as well as the device's dark mode. All colours are CSS variables.
+- Published at https://claude.ai/artifact/8PhHyennfvs42wYhSHmRmn (private to the owner). Last published before the redesign; the owner was told the website is now the main version.
+- Artifacts block everything from other websites except scripts from a few CDNs and Google Fonts. So the artifact runs in **demo mode** (`DEMO` in `js/common.js`): bundled raster map images from `demo/tiles` (zoom 14–16, Vila Madalena/Pinheiros), search over `demo/bars.js` (114 bars), estimated walking times, Best order by "nearest bar next", no service worker.
+- **To update it:** `python3 tools/build_artifact.py`, then publish `dist/artifact/index.html` with every other file in `dist/artifact/` as `files`. The build strips the document tags from `index.html` only (opened locally, that page shows broken accents, which is expected).
 
 ## Running it
 
-The page needs to be served by a local web server (opening the file directly may not load everything). From this folder:
+From this folder:
 
 ```bash
 ruby -run -e httpd . -p 8000
@@ -82,28 +80,27 @@ Then open http://localhost:8000. Ruby comes with macOS.
 
 ## Environment notes
 
-- Apple's Command Line Tools are installed (2026-11-11): `git` 2.50 and `python3` 3.9 work. `jq`, `curl` and `ruby` are also available. Node.js is not installed (not needed yet).
+- Apple's Command Line Tools are installed (2026-11-11): `git` 2.50 and `python3` 3.9 work. `jq`, `curl` and `ruby` are also available. Node.js is not installed.
 - macOS privacy settings block servers started by the Claude app's preview from reading `~/Documents`. Workaround: Claude starts the Ruby server from its own shell, and the preview attaches to it.
+- `qlmanage -t -s 512 -o <dir> file.svg` turns an SVG into a PNG (used for the app icons); `sips -z` resizes.
 
 ## Website (GitHub Pages)
 
-- **Live site:** https://flothecerberusdog.github.io/beerboot/. It's the full app (not demo mode): live search anywhere, real walking paths.
+- **Live site:** https://flothecerberusdog.github.io/beerboot/
 - **Code:** https://github.com/FloTheCerberusDog/beerboot. **Public**, so anyone can read every file in this folder, CLAUDE.md included. Never put secrets or personal details in the repo.
-- GitHub Pages serves the `main` branch root. `.nojekyll` makes it serve files as they are. **Pushing to `main` updates the site** within a minute or two.
-- Published 2026-11-11. Routes people save on the site live in their own browser (localStorage) until step 4.
-- The site uses free public services (OSM tiles, Photon, routing.openstreetmap.de) that have fair-use limits. That's fine for a hobby app; if it gets busy, switch to a paid or own provider.
+- GitHub Pages serves the `main` branch root ("legacy" build). `.nojekyll` makes it serve files as they are. **Pushing to `main` updates the site**, usually within a minute or two.
+- If a Pages build shows `startup_failure` (it happened on 2026-11-11 with no reason given), request a new build: `~/.local/bin/gh api -X POST repos/FloTheCerberusDog/beerboot/pages/builds`, or push again. The reason is only visible to the signed-in owner on the repo's Actions page.
+- The site uses free public services (OpenFreeMap, Photon, routing.openstreetmap.de) that have fair-use limits. That's fine for a hobby app; if it gets busy, switch to a paid or own provider.
 
 ## Git
 
 - Branch `main`, remote `origin` = https://github.com/FloTheCerberusDog/beerboot.git.
-- Commit author email is GitHub's private noreply address (set for this repo only), so the owner's personal email never appears publicly. All earlier commits were rewritten to it before the first push.
+- Commit author email is GitHub's private noreply address (set for this repo only), so the owner's personal email never appears publicly.
 - Save a version (commit) after each working step, with a short plain-language message, and push when the owner wants the site updated.
-- GitHub's command-line tool is installed at `~/.local/bin/gh` (v2.103.3, not on PATH), signed in as FloTheCerberusDog with the token in the macOS keychain. Commands that use the token (`gh`, `git push`) must run outside Claude's sandbox, because the sandbox can't read the keychain.
+- GitHub's command-line tool is installed at `~/.local/bin/gh` (v2.103.3, not on PATH), signed in as FloTheCerberusDog with the token in the macOS keychain. Commands that use the token (`gh`, `git push`) must run outside Claude's sandbox, because the sandbox can't read the keychain. The token can't change workflow files (no `workflow` scope).
 
 ## Connectors and plugins to add later
 
-- Mapbox connector/API: only if the free Photon search turns out not to be good enough
-- GitHub plugin: optional; the `gh` tool already covers GitHub
 - Supabase plugin (official): for accounts and the database (step 4)
-- Vercel plugin: not needed (the site is on GitHub Pages)
-- frontend-design plugin: when polishing the look
+- frontend-design plugin: optional, for further polish
+- GitHub plugin: optional; the `gh` tool already covers GitHub
