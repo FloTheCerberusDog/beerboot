@@ -64,7 +64,7 @@ A website (mobile-first, works on a phone browser, installable on the home scree
 
 ## Artifact (demo version)
 
-- Published at https://claude.ai/artifact/8PhHyennfvs42wYhSHmRmn (private to the owner). Last published before the redesign; the owner was told the website is now the main version.
+- Published at https://claude.ai/artifact/8PhHyennfvs42wYhSHmRmn (private to the owner). Version 3 (2026-11-11) has the "Modern boteco" redesign. The website is the main version; the artifact is a demo.
 - Artifacts block everything from other websites except scripts from a few CDNs and Google Fonts. So the artifact runs in **demo mode** (`DEMO` in `js/common.js`): bundled raster map images from `demo/tiles` (zoom 14–16, Vila Madalena/Pinheiros), search over `demo/bars.js` (114 bars), estimated walking times, Best order by "nearest bar next", no service worker.
 - **To update it:** `python3 tools/build_artifact.py`, then publish `dist/artifact/index.html` with every other file in `dist/artifact/` as `files`. The build strips the document tags from `index.html` only (opened locally, that page shows broken accents, which is expected).
 
