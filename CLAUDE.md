@@ -22,7 +22,7 @@ Planned features:
 ### Build plan
 
 1. **Done:** one hard-coded route (Vila Madalena, 5 bars) on a map, with the walking path and PT/EN.
-2. Create your own route by searching for bars (add the Mapbox connector/API here).
+2. **Done:** create, edit and delete your own routes by searching for bars. Routes are saved in the browser (localStorage). There's a home page listing all routes.
 3. "Doing this crawl now" mode with check-ins and ratings, saved on the device.
 4. Accounts, sharing and comments with Supabase; publish online with Vercel.
 
@@ -32,15 +32,23 @@ Planned features:
 - **Bars and routes are separate data.** A bar has its own location and ratings; a route is an ordered list of bar ids. One bar can be on many routes. Later: a "visit" record links a person, a route and a bar.
 - **No build tools for now.** Plain HTML, CSS and JavaScript so the owner can read every file. Revisit (e.g. React/Next.js) when accounts are added in step 4.
 - **Maps:** Leaflet 1.9.4 (from cdnjs) with OpenStreetMap tiles. Free, no API key. OpenStreetMap credit must stay visible on the map.
-- **Walking paths** are pre-computed and stored in `data/path.js` (from routing.openstreetmap.de, foot profile), so the page doesn't depend on a routing server at runtime.
-- **Bar locations** come from OpenStreetMap (Nominatim). Bar notes are kept short and generic. Opening hours aren't stored; the page tells users to check them.
+- **Walking paths** come from routing.openstreetmap.de (foot profile, free, no key). The built-in route's path is pre-computed in `data/path.js`. In the creator, the path is fetched each time the stops change, then saved with the route. If the service fails, a straight-line estimate (×1.25, 4.5 km/h) is used: shown dashed with "≈".
+- **Bar search** uses Photon (photon.komoot.io, free, no key, OpenStreetMap data). Search is limited to the area visible on the map, and to bars, pubs, beer gardens, breweries and restaurants (many botecos are tagged as restaurants). This means Mapbox isn't needed yet.
+- **Bar ids:** built-in bars use readable ids (`bar-astor`); searched bars use `osm-<type><id>` (e.g. `osm-N2622533015`).
+- **Saved routes** live in localStorage under `pubcrawl.saved.v1` as `{ bars: {id: bar}, routes: [route] }`. Each saved route stores its path. Deleting a route also removes bars no other saved route uses. This storage is per browser; Supabase replaces it in step 4.
+- **Warnings:** a walk over 20 min between bars is flagged as a "long walk"; more than 8 stops shows a gentle reminder.
+- **Bar locations** for the built-in route come from OpenStreetMap (Nominatim). Bar notes are kept short and generic. Opening hours aren't stored; the page tells users to check them.
+- **Text:** all interface text is in `TEXT` in `js/common.js` (pt and en). Built-in route titles are `{ en, pt }`; user routes have a single string. `pick()` handles both.
+- User-entered or searched text goes into the page with `textContent` or `escapeHtml()`, never as raw HTML.
 
 ## Structure
 
-- `index.html`: the page layout
+- `index.html` + `js/home.js`: home page with featured routes and "My routes" (with delete)
+- `route.html` + `js/route.js`: shows one route, `route.html?id=<route id>`. Saved routes get an Edit link.
+- `create.html` + `js/create.js`: route creator. `create.html?edit=<id>` edits a saved route.
+- `js/common.js`: shared code used by every page: text, language switch, formatting, saving/loading routes, map setup, walking directions
 - `styles.css`: look and feel. Colours are CSS variables on `:root`, with a dark-mode version.
-- `app.js`: draws the map, the stop list and the walking legs; handles the PT/EN switch (remembered in localStorage)
-- `data/routes.js`: `window.BARS` (bars by id) and `window.ROUTES` (routes listing bar ids)
+- `data/routes.js`: `window.BARS` (bars by id) and `window.ROUTES` (built-in routes listing bar ids)
 - `data/path.js`: walking path points and per-leg distance/time for the Vila Madalena route
 - `.claude/launch.json`: preview config for Claude's browser pane (attaches to a server on port 8000)
 
@@ -67,7 +75,7 @@ Then open http://localhost:8000. Ruby comes with macOS.
 
 ## Connectors and plugins to add later
 
-- Mapbox connector: when building "create your own route" (step 2)
+- Mapbox connector/API: only if the free Photon search turns out not to be good enough
 - GitHub plugin: once git is set up, to back up the code online
 - Supabase plugin (official): for accounts and the database (step 4)
 - Vercel plugin: to publish the site (step 4)
