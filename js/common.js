@@ -4,7 +4,7 @@
 // Demo mode is switched on by demo/config.js, which only the artifact version loads.
 // In demo mode the map uses bundled images, search uses a bundled bar list,
 // and walking times are estimates, because artifacts can't contact outside services.
-const DEMO = window.PUBCRAWL_DEMO || null;
+const DEMO = window.BEERBOOT_DEMO || null;
 
 // ---------- Text in both languages ----------
 const TEXT = {

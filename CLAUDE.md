@@ -6,7 +6,9 @@ Guidance for Claude Code when working in this folder. Keep this file current: up
 
 A learning project. The owner is new to AI and Claude Code. Explain steps in plain language, avoid unexplained jargon, and suggest small, achievable next steps. Started 2026-11-11.
 
-### The app: beer pub crawl routes
+### The app: BeerBoot (beer pub crawl routes)
+
+The app is called **BeerBoot** (renamed from "Pub Crawl" on 2026-11-11). "Pub crawl" is still used for the activity itself, e.g. "Pub crawls in São Paulo". The storage key `pubcrawl.saved.v1` keeps its old name on purpose: renaming it would make existing saved routes disappear.
 
 A website (mobile-first, works on a phone browser) for beer pub crawls: a route of several bars in a city that you walk between in one day, having one drink at each. First city: São Paulo, Brazil.
 

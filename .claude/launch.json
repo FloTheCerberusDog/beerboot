@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "pubcrawl",
+      "name": "beerboot",
       "url": "http://localhost:8000"
     }
   ]
