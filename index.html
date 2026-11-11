@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pub Crawl</title>
+  <meta name="description" content="Beer pub crawl routes you can follow on foot.">
+
+  <!-- Leaflet: the library that draws the map -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">🍺</span>
+      <span class="brand-name">Pub Crawl</span>
+    </div>
+    <div class="lang-switch" role="group" aria-label="Language / Idioma">
+      <button type="button" data-lang="pt">PT</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div id="map" class="map" role="region" aria-label="Map"></div>
+
+    <section class="panel">
+      <p class="eyebrow" id="route-city"></p>
+      <h1 id="route-title"></h1>
+      <p class="lede" id="route-description"></p>
+
+      <dl class="stats">
+        <div><dt data-i18n="stops"></dt><dd id="stat-stops"></dd></div>
+        <div><dt data-i18n="distance"></dt><dd id="stat-distance"></dd></div>
+        <div><dt data-i18n="walking"></dt><dd id="stat-walking"></dd></div>
+      </dl>
+
+      <ol class="stops" id="stops"></ol>
+
+      <p class="footnote" data-i18n="footnote"></p>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="data/path.js"></script>
+  <script src="data/routes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
