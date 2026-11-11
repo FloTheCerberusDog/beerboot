@@ -26,7 +26,7 @@ Planned features:
 1. **Done:** one hard-coded route (Vila Madalena, 5 bars) on a map, with the walking path and PT/EN.
 2. **Done:** create, edit and delete your own routes by searching for bars. Routes are saved in the browser (localStorage). There's a home page listing all routes.
 3. "Doing this crawl now" mode with check-ins and ratings, saved on the device.
-4. Accounts, sharing and comments with Supabase; publish online with Vercel.
+4. Accounts, sharing and comments with Supabase. (**Publishing online is done**, with GitHub Pages instead of Vercel, to need only one account.)
 
 ## Decisions
 
@@ -85,16 +85,25 @@ Then open http://localhost:8000. Ruby comes with macOS.
 - Apple's Command Line Tools are installed (2026-11-11): `git` 2.50 and `python3` 3.9 work. `jq`, `curl` and `ruby` are also available. Node.js is not installed (not needed yet).
 - macOS privacy settings block servers started by the Claude app's preview from reading `~/Documents`. Workaround: Claude starts the Ruby server from its own shell, and the preview attaches to it.
 
+## Website (GitHub Pages)
+
+- **Live site:** https://flothecerberusdog.github.io/beerboot/. It's the full app (not demo mode): live search anywhere, real walking paths.
+- **Code:** https://github.com/FloTheCerberusDog/beerboot. **Public**, so anyone can read every file in this folder, CLAUDE.md included. Never put secrets or personal details in the repo.
+- GitHub Pages serves the `main` branch root. `.nojekyll` makes it serve files as they are. **Pushing to `main` updates the site** within a minute or two.
+- Published 2026-11-11. Routes people save on the site live in their own browser (localStorage) until step 4.
+- The site uses free public services (OSM tiles, Photon, routing.openstreetmap.de) that have fair-use limits. That's fine for a hobby app; if it gets busy, switch to a paid or own provider.
+
 ## Git
 
-- A git repository on branch `main`, with no remote yet. GitHub comes later.
-- The author name and email are set for this repo only (not globally).
-- Save a version (commit) after each working step, with a short plain-language message.
+- Branch `main`, remote `origin` = https://github.com/FloTheCerberusDog/beerboot.git.
+- Commit author email is GitHub's private noreply address (set for this repo only), so the owner's personal email never appears publicly. All earlier commits were rewritten to it before the first push.
+- Save a version (commit) after each working step, with a short plain-language message, and push when the owner wants the site updated.
+- GitHub's command-line tool is installed at `~/.local/bin/gh` (v2.103.3, not on PATH), signed in as FloTheCerberusDog with the token in the macOS keychain. Commands that use the token (`gh`, `git push`) must run outside Claude's sandbox, because the sandbox can't read the keychain.
 
 ## Connectors and plugins to add later
 
 - Mapbox connector/API: only if the free Photon search turns out not to be good enough
-- GitHub plugin: once git is set up, to back up the code online
+- GitHub plugin: optional; the `gh` tool already covers GitHub
 - Supabase plugin (official): for accounts and the database (step 4)
-- Vercel plugin: to publish the site (step 4)
+- Vercel plugin: not needed (the site is on GitHub Pages)
 - frontend-design plugin: when polishing the look
