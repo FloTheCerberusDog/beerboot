@@ -67,6 +67,7 @@ window.ROUTES = [
       pt: "Clássicos da Vila Madalena"
     },
     city: "São Paulo",
+    area: "Vila Madalena",
     description: {
       en: "Five bars, one drink at each, all on foot through one of São Paulo's liveliest neighbourhoods.",
       pt: "Cinco bares, uma bebida em cada, tudo a pé por um dos bairros mais animados de São Paulo."

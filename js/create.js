@@ -1,42 +1,28 @@
-// Route creator: search for bars, put them in order, see the walking path, and save.
+// Creator: search for bars, put them in order (or let "Best order" do it), see the walking path, save.
+// create.html#<route id> edits that crawl; create.html#near starts at your location.
 
 // Bar search uses Photon, a free search service built on OpenStreetMap data (no account needed).
 const SEARCH_URL = "https://photon.komoot.io/api/";
 // Which kinds of places count as "bars". Many Brazilian botecos are tagged as restaurants.
 const PLACE_TYPES = ["amenity:bar", "amenity:pub", "amenity:biergarten", "amenity:restaurant", "craft:brewery"];
-const TYPE_NAMES = {
-  bar: { pt: "Bar", en: "Bar" },
-  pub: { pt: "Pub", en: "Pub" },
-  biergarten: { pt: "Cervejaria ao ar livre", en: "Beer garden" },
-  restaurant: { pt: "Bar / restaurante", en: "Bar / restaurant" },
-  brewery: { pt: "Cervejaria", en: "Brewery" }
-};
+const TYPE_KEYS = { bar: "typeBar", pub: "typePub", biergarten: "typeBeerGarden", restaurant: "typeRestaurant", brewery: "typeBrewery" };
 
 // ---------- What we're editing ----------
-// create.html#<route id> edits that route; plain create.html starts a new one.
-const editId = idFromAddress("edit");
-const editing = editId ? getRoute(editId) : null;
+const addressId = idFromAddress("edit");
+const wantsNearMe = addressId === "near";
+const editing = addressId && !wantsNearMe ? getRoute(addressId) : null;
+const isEdit = Boolean(editing && isMine(editing));
 
 const state = {
-  id: editing && isMine(editing) ? editing.id : "my-" + Date.now().toString(36),
-  isEdit: Boolean(editing && isMine(editing)),
-  bars: editing && isMine(editing) ? editing.stops.map(getBar).filter(Boolean) : [],
-  path: editing && isMine(editing) ? editing.path : null,
+  id: isEdit ? editing.id : newRouteId(),
+  bars: isEdit ? editing.stops.map(getBar).filter(Boolean) : [],
+  path: isEdit ? editing.path : null,
   results: []
 };
 
 // ---------- Map ----------
-const map = makeMap("map");
-const pathColor = cssColor("--path", "#c7781a");
-const stopLayer = L.layerGroup().addTo(map);
-const resultLayer = L.layerGroup().addTo(map);
-let pathLine = null;
-
-if (state.bars.length) {
-  map.fitBounds(L.latLngBounds(state.bars.map((b) => [b.lat, b.lng])), { padding: [40, 40], maxZoom: 16 });
-} else {
-  map.setView([-23.5565, -46.69], 15); // Vila Madalena, São Paulo
-}
+const bb = createMap("map", { center: [-46.69, -23.5565], zoom: 14.5 }); // Vila Madalena, São Paulo
+if (state.bars.length) bb.fit(state.bars.map((b) => [b.lat, b.lng]), { padding: MAP_PADDING });
 
 // ---------- Search ----------
 const searchInput = document.getElementById("search");
@@ -48,6 +34,7 @@ searchInput.addEventListener("input", () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(runSearch, 400); // wait until the person stops typing
 });
+searchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { clearTimeout(searchTimer); runSearch(); } });
 
 async function runSearch() {
   const query = searchInput.value.trim();
@@ -58,7 +45,6 @@ async function runSearch() {
     renderResults();
     return;
   }
-
   if (DEMO) {
     state.results = searchDemoBars(query);
     searchStatus.textContent = state.results.length ? "" : t("noResults");
@@ -67,11 +53,12 @@ async function runSearch() {
   }
 
   searchStatus.textContent = t("searching");
-  const b = map.getBounds().pad(0.2);
+  const b = bb.map.getBounds();
+  const padLng = (b.getEast() - b.getWest()) * 0.2, padLat = (b.getNorth() - b.getSouth()) * 0.2;
   const url = new URL(SEARCH_URL);
   url.searchParams.set("q", query);
   url.searchParams.set("limit", "10");
-  url.searchParams.set("bbox", [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(5)).join(","));
+  url.searchParams.set("bbox", [b.getWest() - padLng, b.getSouth() - padLat, b.getEast() + padLng, b.getNorth() + padLat].map((n) => n.toFixed(5)).join(","));
   PLACE_TYPES.forEach((tag) => url.searchParams.append("osm_tag", tag));
 
   try {
@@ -96,10 +83,11 @@ function plain(text) {
 }
 function searchDemoBars(query) {
   const words = plain(query).split(/\s+/).filter(Boolean);
-  const centre = map.getCenter();
+  const c = bb.map.getCenter();
+  const centre = { lat: c.lat, lng: c.lng };
   return window.DEMO_BARS
     .filter((bar) => words.every((w) => plain(bar.name).includes(w)))
-    .map((bar) => ({ ...bar, note: null, away: centre.distanceTo([bar.lat, bar.lng]) }))
+    .map((bar) => ({ ...bar, note: null, away: metresBetween(centre, bar) }))
     .sort((a, b) => a.away - b.away)
     .slice(0, 10);
 }
@@ -126,60 +114,70 @@ function isAdded(bar) {
   return state.bars.some((b) => b.id === bar.id);
 }
 
-function typeName(type) {
-  return TYPE_NAMES[type] ? TYPE_NAMES[type][lang] : "";
-}
-
 function renderResults() {
   const list = document.getElementById("results");
   list.innerHTML = "";
-  resultLayer.clearLayers();
-
   state.results.forEach((bar) => {
     const added = isAdded(bar);
     const li = document.createElement("li");
     li.className = "result";
-    li.innerHTML = `
-      <div>
-        <p class="result-name"></p>
-        <p class="result-meta"></p>
-      </div>
-      <button type="button" class="button-small"></button>`;
+    li.innerHTML = `<div><p class="result-name"></p><p class="result-meta"></p></div><button type="button" class="btn btn-small"></button>`;
     li.querySelector(".result-name").textContent = bar.name;
-    li.querySelector(".result-meta").textContent = [typeName(bar.type), bar.address, bar.district !== bar.address ? bar.district : ""].filter(Boolean).join(" · ");
+    li.querySelector(".result-meta").textContent = [TYPE_KEYS[bar.type] ? t(TYPE_KEYS[bar.type]) : "", bar.address, bar.district !== bar.address ? bar.district : ""].filter(Boolean).join(" · ");
     const btn = li.querySelector("button");
-    btn.textContent = added ? t("alreadyAdded") : "＋ " + t("add");
+    btn.className = "btn btn-small " + (added ? "btn-ghost" : "btn-green");
+    btn.innerHTML = added ? `${icon("check", "icon-sm")}<span></span>` : `${icon("plus", "icon-sm")}<span></span>`;
+    btn.querySelector("span").textContent = added ? t("alreadyAdded") : t("add");
     btn.disabled = added;
     btn.addEventListener("click", () => addBar(bar));
     list.appendChild(li);
-
-    // Show each result as a small dot on the map too; clicking it adds the bar.
-    const dot = L.circleMarker([bar.lat, bar.lng], {
-      radius: 7, weight: 2, color: "#fff", fillColor: added ? "#9a8c7c" : pathColor, fillOpacity: 0.9
-    }).bindTooltip(bar.name);
-    if (!added) dot.on("click", () => addBar(bar));
-    dot.addTo(resultLayer);
   });
+  bb.setDots(state.results, { added: isAdded, onClick: addBar });
 }
 
 // ---------- Changing the list of stops ----------
 function addBar(bar) {
   if (isAdded(bar)) return;
-  state.bars.push(bar);
+  const { away, ...clean } = bar;
+  state.bars.push(clean);
   stopsChanged();
 }
-
 function moveBar(i, step) {
   const j = i + step;
   if (j < 0 || j >= state.bars.length) return;
   [state.bars[i], state.bars[j]] = [state.bars[j], state.bars[i]];
   stopsChanged();
 }
-
 function removeBar(i) {
   state.bars.splice(i, 1);
   stopsChanged();
 }
+
+// ---------- Best order ----------
+document.getElementById("best-order").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  try {
+    const before = state.bars.map((b) => b.id).join();
+    const ordered = await fetchBestOrder(state.bars);
+    if (ordered.map((b) => b.id).join() === before) toast(t("bestOrderSame"));
+    else { state.bars = ordered; stopsChanged(); toast(t("bestOrderDone")); }
+  } catch (err) {
+    toast(t("bestOrderFailed"));
+  }
+  btn.disabled = false;
+});
+
+// ---------- Where am I ----------
+function locate() {
+  if (!navigator.geolocation) { toast(t("locateFailed")); return; }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => { bb.showMe(pos.coords.latitude, pos.coords.longitude); bb.flyTo(pos.coords.latitude, pos.coords.longitude, 15.5); },
+    () => toast(t("locateFailed")),
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+document.getElementById("locate-btn").addEventListener("click", locate);
 
 // ---------- Walking path ----------
 let routeCount = 0;
@@ -211,17 +209,18 @@ function stopsChanged() {
 
 // ---------- Drawing ----------
 function render() {
-  document.getElementById("page-title").textContent = state.isEdit ? t("editTitle") : t("createTitle");
-  document.title = state.isEdit ? t("editTitle") : t("createTitle");
+  const title = isEdit ? t("editTitle") : t("createTitle");
+  document.getElementById("page-title").textContent = title;
+  document.title = title + " · BeerBoot";
+  if (DEMO) document.getElementById("search-hint").textContent = t("searchHintDemo", { count: window.DEMO_BARS.length });
 
-  // Stats
   const sum = totals(state.path);
   const approx = state.path && state.path.estimated ? "≈ " : "";
   document.getElementById("stat-stops").textContent = state.bars.length;
   document.getElementById("stat-distance").textContent = state.path ? approx + formatDistance(sum.distance) : "–";
   document.getElementById("stat-walking").textContent = state.path ? approx + formatMinutes(sum.duration) : "–";
+  document.getElementById("tools-row").hidden = state.bars.length < 3;
 
-  // Stop list
   const list = document.getElementById("stops");
   list.innerHTML = "";
   if (state.bars.length === 0) {
@@ -232,26 +231,22 @@ function render() {
   }
   state.bars.forEach((bar, i) => {
     const li = document.createElement("li");
+    li.className = "tl-stop stop-edit";
     li.innerHTML = `
-      <div class="stop stop-edit">
-        <span class="stop-num">${i + 1}</span>
-        <div>
-          <p class="stop-name"></p>
-          <p class="stop-address"></p>
-        </div>
-        <div class="stop-controls">
-          <button type="button" class="icon-button" data-action="up">↑</button>
-          <button type="button" class="icon-button" data-action="down">↓</button>
-          <button type="button" class="icon-button" data-action="remove">✕</button>
-        </div>
+      ${capSvg(i + 1)}
+      <div><p class="tl-name"></p><p class="tl-sub"></p></div>
+      <div class="stop-controls">
+        <button type="button" class="round round-sm" data-action="up">${icon("up", "icon-sm")}</button>
+        <button type="button" class="round round-sm" data-action="down">${icon("down", "icon-sm")}</button>
+        <button type="button" class="round round-sm" data-action="remove">${icon("x", "icon-sm")}</button>
       </div>`;
-    li.querySelector(".stop-name").textContent = bar.name;
-    li.querySelector(".stop-address").textContent = bar.address;
-    const [up, down, remove] = li.querySelectorAll(".icon-button");
-    up.setAttribute("aria-label", `${t("moveUp")}: ${bar.name}`);
-    down.setAttribute("aria-label", `${t("moveDown")}: ${bar.name}`);
-    remove.setAttribute("aria-label", `${t("remove")}: ${bar.name}`);
-    up.title = t("moveUp"); down.title = t("moveDown"); remove.title = t("remove");
+    li.querySelector(".tl-name").textContent = bar.name;
+    li.querySelector(".tl-sub").textContent = bar.address;
+    const [up, down, remove] = li.querySelectorAll(".stop-controls button");
+    [[up, "moveUp"], [down, "moveDown"], [remove, "remove"]].forEach(([b, key]) => {
+      b.setAttribute("aria-label", `${t(key)}: ${bar.name}`);
+      b.title = t(key);
+    });
     up.disabled = i === 0;
     down.disabled = i === state.bars.length - 1;
     up.addEventListener("click", () => moveBar(i, -1));
@@ -263,35 +258,22 @@ function render() {
     if (leg && i < state.bars.length - 1) {
       const legItem = document.createElement("li");
       const long = leg.duration > LONG_WALK_SECONDS;
-      legItem.className = "leg" + (long ? " leg-long" : "");
-      legItem.textContent = `${long ? "⚠️ " + t("longWalk") + " · " : "🚶 "}${approx}${formatMinutes(leg.duration)} ${t("walk")} · ${formatDistance(leg.distance)}`;
+      legItem.className = "tl-walk" + (long ? " long" : "");
+      legItem.innerHTML = `${icon("walk")}<span></span>`;
+      legItem.querySelector("span").textContent = `${long ? t("longWalk") + " · " : ""}${approx}${formatMinutes(leg.duration)} ${t("walk")} · ${formatDistance(leg.distance)}`;
       list.appendChild(legItem);
     }
   });
 
-  const many = document.getElementById("many-stops");
-  many.hidden = state.bars.length <= MANY_STOPS;
-  many.textContent = t("manyStops");
+  document.getElementById("many-stops").hidden = state.bars.length <= MANY_STOPS;
 
-  // Map
-  stopLayer.clearLayers();
-  state.bars.forEach((bar, i) => {
-    L.marker([bar.lat, bar.lng], { icon: numberedIcon(i + 1), title: bar.name })
-      .bindPopup(`<strong>${i + 1}. ${escapeHtml(bar.name)}</strong><br>${escapeHtml(bar.address)}`)
-      .addTo(stopLayer);
-  });
-  if (pathLine) pathLine.remove();
-  pathLine = null;
-  if (state.path) {
-    pathLine = L.polyline(state.path.points, {
-      color: pathColor, weight: 5, opacity: 0.85, dashArray: state.path.estimated ? "6 8" : null
-    }).addTo(map);
-  }
+  bb.setStops(state.bars);
+  bb.setPath(state.path ? state.path.points : null, { dashed: Boolean(state.path && state.path.estimated) });
 }
 
 // ---------- Saving ----------
 const nameInput = document.getElementById("route-name");
-if (state.isEdit) nameInput.value = pick(editing.title);
+if (isEdit) nameInput.value = pick(editing.title);
 
 document.getElementById("save").addEventListener("click", async () => {
   const status = document.getElementById("save-status");
@@ -309,7 +291,7 @@ document.getElementById("save").addEventListener("click", async () => {
     path: state.path,
     updatedAt: new Date().toISOString()
   };
-  if (saveRoute(route, state.bars.map(({ away, ...bar }) => bar))) {
+  if (saveRoute(route, state.bars)) {
     location.href = routeUrl(route.id);
   } else {
     status.textContent = t("saveFailed");
@@ -317,10 +299,7 @@ document.getElementById("save").addEventListener("click", async () => {
 });
 
 // ---------- Start ----------
-function renderHint() {
-  if (DEMO) document.querySelector(".hint").textContent = t("searchHintDemo", { count: window.DEMO_BARS.length });
-}
-setupLangSwitch(() => { renderHint(); render(); renderResults(); });
-renderHint();
+setupHeader(() => { render(); renderResults(); });
 render();
 if (state.bars.length >= 2 && !state.path) stopsChanged();
+if (wantsNearMe) locate();

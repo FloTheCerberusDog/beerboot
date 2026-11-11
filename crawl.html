@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Crawl Mode · BeerBoot</title>
+  <meta name="description" content="Follow your BeerBoot crawl bar by bar.">
+  <meta name="theme-color" content="#0d5c3d">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="BeerBoot">
+  <script>try{var t=localStorage.getItem("beerboot.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="crawl gutter">
+    <div class="crawl-head">
+      <p class="eyebrow" id="crawl-step"></p>
+      <div class="top-actions">
+        <div class="lang-switch" role="group" aria-label="Language / Idioma">
+          <button type="button" data-lang="pt">PT</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+        <button type="button" class="round round-sm" id="theme-toggle" data-i18n-label="theme"></button>
+        <a class="round round-sm" id="close-btn" data-i18n-label="leave"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></a>
+      </div>
+    </div>
+
+    <!-- During the crawl -->
+    <div id="crawl-live">
+      <div class="progress" id="progress"></div>
+
+      <article class="now-card">
+        <div class="now-map" id="map"></div>
+        <div class="body">
+          <p class="eyebrow" id="now-label"></p>
+          <h1 class="display" id="now-name"></h1>
+          <p class="addr" id="now-addr"></p>
+          <p class="walk" id="now-walk"></p>
+          <a class="btn btn-ghost" id="now-directions" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-nav"/></svg><span data-i18n="directions"></span></a>
+          <div class="rate" id="rate" hidden>
+            <span class="rate-label" id="rate-label"></span>
+            <div class="caps" id="rate-caps"></div>
+          </div>
+        </div>
+      </article>
+
+      <div class="next" id="next" hidden>
+        <small data-i18n="upNext"></small>
+        <strong id="next-name"></strong>
+        <a class="round round-green" id="next-directions" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-nav"/></svg></a>
+        <span class="chip" id="next-walk"></span>
+      </div>
+    </div>
+
+    <!-- After the last bar -->
+    <section class="finish" id="crawl-finish" hidden>
+      <div class="finish-caps" id="finish-caps"></div>
+      <h1 class="display" data-i18n="crawlDone"></h1>
+      <p class="lede" id="finish-lede"></p>
+      <p class="muted" id="finish-time"></p>
+      <p class="eyebrow" data-i18n="yourRatings"></p>
+      <ul class="summary" id="finish-ratings"></ul>
+    </section>
+
+    <div class="crawl-foot">
+      <p class="nudge" id="nudge" hidden><svg class="icon" aria-hidden="true"><use href="#i-drop"/></svg><span id="nudge-text"></span></p>
+      <div class="get-home" id="get-home" hidden>
+        <p data-i18n="getHomeText"></p>
+        <div>
+          <a class="btn btn-ghost" href="https://m.uber.com/ul/?action=setPickup&amp;pickup=my_location" target="_blank" rel="noopener">Uber</a>
+          <a class="btn btn-ghost" href="https://99app.com/" target="_blank" rel="noopener">99</a>
+        </div>
+      </div>
+      <div class="foot-row" id="live-actions">
+        <button type="button" class="btn btn-gold" id="main-btn"></button>
+        <button type="button" class="btn btn-ghost" id="home-btn"><svg class="icon" aria-hidden="true"><use href="#i-car"/></svg><span data-i18n="getHome"></span></button>
+      </div>
+      <div class="foot-row" id="finish-actions" hidden>
+        <a class="btn btn-gold" id="back-btn"><span data-i18n="backToRoute"></span></a>
+        <button type="button" class="btn btn-ghost" id="again-btn"><span data-i18n="doAgain"></span></button>
+      </div>
+    </div>
+
+    <div class="empty" id="not-found" hidden>
+      <p data-i18n="routeNotFound"></p>
+      <a class="btn btn-gold btn-small" href="index.html" data-i18n="allRoutes"></a>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <script src="data/path.js"></script>
+  <script src="data/routes.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/crawl.js"></script>
+  <script src="js/pwa.js"></script>
+</body>
+</html>

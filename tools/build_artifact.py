@@ -16,8 +16,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "dist" / "artifact"
 
-COPY = ["styles.css", "js", "data", "vendor", "demo"]
-PAGES = ["index.html", "route.html", "create.html"]
+COPY = ["styles.css", "js", "data", "vendor", "demo", "icons"]
+PAGES = ["index.html", "route.html", "create.html", "crawl.html"]
 DEMO_SCRIPTS = '<script src="demo/config.js"></script>\n  <script src="demo/bars.js"></script>\n  '
 
 

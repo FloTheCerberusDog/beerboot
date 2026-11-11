@@ -2,59 +2,77 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BeerBoot Route</title>
-  <meta name="description" content="A beer pub crawl route you can follow on foot.">
-
-  <!-- Leaflet: the library that draws the map -->
-  <link rel="stylesheet" href="vendor/leaflet-1.9.4.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BeerBoot Crawl</title>
+  <meta name="description" content="A beer pub crawl in São Paulo you can follow on foot.">
+  <meta name="theme-color" content="#0d5c3d">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="BeerBoot">
+  <script>try{var t=localStorage.getItem("beerboot.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="index.html">
-      <span class="brand-mark" aria-hidden="true">🍺</span>
-      <span class="brand-name">BeerBoot</span>
-    </a>
-    <div class="lang-switch" role="group" aria-label="Language / Idioma">
-      <button type="button" data-lang="pt">PT</button>
-      <button type="button" data-lang="en">EN</button>
-    </div>
-  </header>
-
-  <main class="layout">
-    <div id="map" class="map" role="region" aria-label="Map"></div>
-
-    <section class="panel">
-      <div class="panel-nav">
-        <a class="back-link" href="index.html" data-i18n="allRoutes"></a>
-        <a class="button-text" id="edit-link" hidden data-i18n="edit"></a>
+  <main class="map-page">
+    <div class="map-wrap">
+      <div id="map" class="map" role="region" aria-label="Map"></div>
+      <div class="map-buttons gutter">
+        <a class="round" href="index.html" data-i18n-label="allRoutes"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></a>
+        <div class="group">
+          <div class="lang-switch" role="group" aria-label="Language / Idioma">
+            <button type="button" data-lang="pt">PT</button>
+            <button type="button" data-lang="en">EN</button>
+          </div>
+          <button type="button" class="round" id="theme-toggle" data-i18n-label="theme"></button>
+          <button type="button" class="round" id="share-btn" data-i18n-label="share"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg></button>
+        </div>
       </div>
+    </div>
 
-      <div id="route-content">
-        <p class="eyebrow" id="route-city"></p>
-        <h1 id="route-title"></h1>
-        <p class="lede" id="route-description"></p>
+    <section class="sheet gutter">
+      <div class="grabber"></div>
 
-        <dl class="stats">
-          <div><dt data-i18n="stops"></dt><dd id="stat-stops"></dd></div>
-          <div><dt data-i18n="distance"></dt><dd id="stat-distance"></dd></div>
-          <div><dt data-i18n="walking"></dt><dd id="stat-walking"></dd></div>
-        </dl>
+      <div class="stack" id="route-content">
+        <div class="sheet-head">
+          <p class="eyebrow" id="route-eyebrow"></p>
+          <h1 class="display" id="route-title"></h1>
+          <p class="lede" id="route-description"></p>
+        </div>
 
-        <ol class="stops" id="stops"></ol>
+        <div class="stat-row">
+          <div class="stat"><b id="stat-stops"></b><span data-i18n="statBars"></span></div>
+          <div class="stat"><b id="stat-distance"></b><span data-i18n="statDistance"></span></div>
+          <div class="stat"><b id="stat-walking"></b><span data-i18n="statWalking"></span></div>
+        </div>
+
+        <div class="actions-row">
+          <a class="btn btn-gold btn-block" id="start-btn"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span id="start-label"></span></a>
+          <a class="btn btn-ghost" id="edit-link" hidden data-i18n-label="edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></a>
+          <button type="button" class="btn btn-ghost" id="save-shared" hidden data-i18n-label="saveShared"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></button>
+        </div>
+
+        <ol class="timeline" id="stops"></ol>
 
         <p class="footnote" data-i18n="footnote"></p>
       </div>
 
-      <p class="empty" id="not-found" hidden data-i18n="routeNotFound"></p>
+      <div class="empty" id="not-found" hidden>
+        <p data-i18n="routeNotFound"></p>
+        <a class="btn btn-gold btn-small" href="index.html" data-i18n="allRoutes"></a>
+      </div>
     </section>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
   <script src="data/path.js"></script>
   <script src="data/routes.js"></script>
   <script src="js/common.js"></script>
   <script src="js/route.js"></script>
+  <script src="js/pwa.js"></script>
 </body>
 </html>
