@@ -13,8 +13,9 @@ const TYPE_NAMES = {
 };
 
 // ---------- What we're editing ----------
-const params = new URLSearchParams(location.search);
-const editing = params.get("edit") ? getRoute(params.get("edit")) : null;
+// create.html#<route id> edits that route; plain create.html starts a new one.
+const editId = idFromAddress("edit");
+const editing = editId ? getRoute(editId) : null;
 
 const state = {
   id: editing && isMine(editing) ? editing.id : "my-" + Date.now().toString(36),
@@ -58,6 +59,13 @@ async function runSearch() {
     return;
   }
 
+  if (DEMO) {
+    state.results = searchDemoBars(query);
+    searchStatus.textContent = state.results.length ? "" : t("noResults");
+    renderResults();
+    return;
+  }
+
   searchStatus.textContent = t("searching");
   const b = map.getBounds().pad(0.2);
   const url = new URL(SEARCH_URL);
@@ -79,6 +87,21 @@ async function runSearch() {
     searchStatus.textContent = t("searchFailed");
   }
   renderResults();
+}
+
+// Demo search: looks through the bundled bar list (demo/bars.js) instead of the internet.
+// Ignores accents and capitals, so "sao" finds "São". Closest to the map's centre first.
+function plain(text) {
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+function searchDemoBars(query) {
+  const words = plain(query).split(/\s+/).filter(Boolean);
+  const centre = map.getCenter();
+  return window.DEMO_BARS
+    .filter((bar) => words.every((w) => plain(bar.name).includes(w)))
+    .map((bar) => ({ ...bar, note: null, away: centre.distanceTo([bar.lat, bar.lng]) }))
+    .sort((a, b) => a.away - b.away)
+    .slice(0, 10);
 }
 
 // Turns a search result into the same shape as the bars in data/routes.js.
@@ -286,14 +309,18 @@ document.getElementById("save").addEventListener("click", async () => {
     path: state.path,
     updatedAt: new Date().toISOString()
   };
-  if (saveRoute(route, state.bars)) {
-    location.href = "route.html?id=" + encodeURIComponent(route.id);
+  if (saveRoute(route, state.bars.map(({ away, ...bar }) => bar))) {
+    location.href = routeUrl(route.id);
   } else {
     status.textContent = t("saveFailed");
   }
 });
 
 // ---------- Start ----------
-setupLangSwitch(() => { render(); renderResults(); });
+function renderHint() {
+  if (DEMO) document.querySelector(".hint").textContent = t("searchHintDemo", { count: window.DEMO_BARS.length });
+}
+setupLangSwitch(() => { renderHint(); render(); renderResults(); });
+renderHint();
 render();
 if (state.bars.length >= 2 && !state.path) stopsChanged();

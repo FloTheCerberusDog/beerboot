@@ -8,7 +8,7 @@ function routeCard(route, mine) {
   const li = document.createElement("li");
   li.className = "card";
   li.innerHTML = `
-    <a class="card-link" href="route.html?id=${encodeURIComponent(route.id)}">
+    <a class="card-link" href="${routeUrl(route.id)}">
       <p class="eyebrow"></p>
       <h3 class="card-title"></h3>
       <p class="card-meta"></p>
@@ -23,18 +23,29 @@ function routeCard(route, mine) {
   if (mine) {
     const del = document.createElement("button");
     del.type = "button";
-    del.className = "button-text danger";
+    del.className = "button-text danger card-delete";
     del.textContent = t("delete");
-    del.addEventListener("click", () => {
-      if (confirm(t("confirmDelete", { name: pick(route.title) }))) {
-        deleteRoute(route.id);
-        render();
-      }
-    });
     li.appendChild(del);
+
+    // Asks inside the card instead of a pop-up (artifacts don't allow pop-ups).
+    const ask = document.createElement("div");
+    ask.className = "confirm";
+    ask.hidden = true;
+    ask.innerHTML = `<p></p><button type="button" class="button-small danger-fill"></button><button type="button" class="button-text"></button>`;
+    ask.querySelector("p").textContent = t("confirmDelete");
+    const [yes, no] = ask.querySelectorAll("button");
+    yes.textContent = t("yesDelete");
+    no.textContent = t("keep");
+    li.appendChild(ask);
+
+    del.addEventListener("click", () => { del.hidden = true; ask.hidden = false; no.focus(); });
+    no.addEventListener("click", () => { ask.hidden = true; del.hidden = false; del.focus(); });
+    yes.addEventListener("click", () => { deleteRoute(route.id); render(); });
   }
   return li;
 }
+
+document.getElementById("demo-notice").hidden = !DEMO;
 
 function render() {
   const featured = document.getElementById("featured");

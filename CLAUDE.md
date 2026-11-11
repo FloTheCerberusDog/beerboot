@@ -43,14 +43,30 @@ Planned features:
 
 ## Structure
 
-- `index.html` + `js/home.js`: home page with featured routes and "My routes" (with delete)
-- `route.html` + `js/route.js`: shows one route, `route.html?id=<route id>`. Saved routes get an Edit link.
-- `create.html` + `js/create.js`: route creator. `create.html?edit=<id>` edits a saved route.
+- `index.html` + `js/home.js`: home page with featured routes and "My routes". Delete asks for confirmation inside the card, not with `confirm()`.
+- `route.html` + `js/route.js`: shows one route, `route.html#<route id>`. Saved routes get an Edit link.
+- `create.html` + `js/create.js`: route creator. `create.html#<route id>` edits a saved route.
+- Links put the route id after `#` (artifacts only pass that part through). `idFromAddress()` still accepts old `?id=` / `?edit=` links.
+- `vendor/leaflet-1.9.4.min.css`: a local copy of Leaflet's stylesheet (artifacts can't load stylesheets from CDNs). Leaflet's JS still comes from cdnjs.
+- `demo/`: used only by the artifact version. `config.js` turns on demo mode; `bars.js` is 114 bars in Vila Madalena/Pinheiros from OpenStreetMap; `tiles/` holds map images at zoom 14–16 for that area.
+- `tools/build_artifact.py`: builds the artifact version into `dist/artifact/`. `dist/` is ignored by git.
 - `js/common.js`: shared code used by every page: text, language switch, formatting, saving/loading routes, map setup, walking directions
 - `styles.css`: look and feel. Colours are CSS variables on `:root`, with a dark-mode version.
 - `data/routes.js`: `window.BARS` (bars by id) and `window.ROUTES` (built-in routes listing bar ids)
 - `data/path.js`: walking path points and per-leg distance/time for the Vila Madalena route
 - `.claude/launch.json`: preview config for Claude's browser pane (attaches to a server on port 8000)
+
+## Artifact (demo version)
+
+- Published at https://claude.ai/artifact/8PhHyennfvs42wYhSHmRmn (private to the owner). First published 2026-11-11.
+- Artifacts block everything from other websites except scripts from a few CDNs: no map tiles, no fetch, no external stylesheets. `confirm()`/`alert()` don't work either. So the artifact runs in **demo mode** (`DEMO` in `js/common.js`):
+  - map images come from `demo/tiles`, and the map is limited to that area (zoom 14–18);
+  - search looks through `demo/bars.js` (ignores accents and capitals, closest first);
+  - walking paths for new routes are straight-line estimates (dashed, "≈"). The built-in route keeps its real path;
+  - routes are saved per browser (localStorage).
+- **To update the artifact:** run `python3 tools/build_artifact.py`, then publish `dist/artifact/index.html` with every other file in `dist/artifact/` passed as `files` (published path = path inside `dist/artifact/`). Republishing the same file path keeps the URL.
+- The build removes `<!doctype>`, `<html>`, `<head>`, `<body>`, charset and viewport from `index.html` only (the viewer adds them). Opened locally, that page shows broken accents, which is expected.
+- Colours follow the artifact viewer's theme through `data-theme` on `<html>`, as well as the device's dark mode. All colours are CSS variables.
 
 ## Running it
 

@@ -1,7 +1,7 @@
 // Route viewer: draws one route on the map and lists its stops.
-// Which route comes from the address, e.g. route.html?id=vila-madalena-classic
+// Which route comes from the address, e.g. route.html#vila-madalena-classic
 
-const routeId = new URLSearchParams(location.search).get("id") || window.ROUTES[0].id;
+const routeId = idFromAddress("id") || window.ROUTES[0].id;
 const route = getRoute(routeId);
 const map = makeMap("map");
 
@@ -21,7 +21,7 @@ function showRoute(route) {
 
   if (mine) {
     const edit = document.getElementById("edit-link");
-    edit.href = "create.html?edit=" + encodeURIComponent(route.id);
+    edit.href = editUrl(route.id);
     edit.hidden = false;
   }
 

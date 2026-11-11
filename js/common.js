@@ -1,6 +1,11 @@
 // Shared code used by every page: text in both languages, saving routes,
 // formatting, the map, and walking directions.
 
+// Demo mode is switched on by demo/config.js, which only the artifact version loads.
+// In demo mode the map uses bundled images, search uses a bundled bar list,
+// and walking times are estimates, because artifacts can't contact outside services.
+const DEMO = window.PUBCRAWL_DEMO || null;
+
 // ---------- Text in both languages ----------
 const TEXT = {
   pt: {
@@ -13,7 +18,11 @@ const TEXT = {
     noRoutesYet: "Você ainda não criou nenhuma rota.",
     savedOnDevice: "Suas rotas ficam salvas só neste navegador, por enquanto.",
     delete: "Excluir",
-    confirmDelete: "Excluir a rota \"{name}\"? Isso não pode ser desfeito.",
+    confirmDelete: "Excluir esta rota? Isso não pode ser desfeito.",
+    yesDelete: "Sim, excluir",
+    keep: "Manter",
+    demoNotice: "Versão de demonstração: o mapa e a busca cobrem só a Vila Madalena e Pinheiros, e os tempos de caminhada das novas rotas são estimativas.",
+    searchHintDemo: "Demonstração: busca entre {count} bares da Vila Madalena e Pinheiros.",
     // Route viewer
     allRoutes: "← Todas as rotas",
     yourRoute: "Sua rota",
@@ -60,7 +69,11 @@ const TEXT = {
     noRoutesYet: "You haven't created any routes yet.",
     savedOnDevice: "For now, your routes are saved only in this browser.",
     delete: "Delete",
-    confirmDelete: "Delete the route \"{name}\"? This can't be undone.",
+    confirmDelete: "Delete this route? This can't be undone.",
+    yesDelete: "Yes, delete",
+    keep: "Keep it",
+    demoNotice: "Demo version: the map and search cover Vila Madalena and Pinheiros only, and walking times for new routes are estimates.",
+    searchHintDemo: "Demo: searches {count} bars in Vila Madalena and Pinheiros.",
     allRoutes: "← All routes",
     yourRoute: "Your route",
     edit: "Edit",
@@ -215,13 +228,30 @@ function isMine(route) {
   return !window.ROUTES.some((r) => r.id === route.id);
 }
 
+// ---------- Links between pages ----------
+// The route id goes after "#" (route.html#vila-madalena-classic), because artifacts
+// only pass that part of an address through. Older "?id=" links still work.
+function routeUrl(id) { return "route.html#" + encodeURIComponent(id); }
+function editUrl(id) { return "create.html#" + encodeURIComponent(id); }
+function idFromAddress(paramName) {
+  const fromHash = decodeURIComponent(location.hash.slice(1));
+  return fromHash || new URLSearchParams(location.search).get(paramName) || "";
+}
+
 // ---------- Map ----------
+const OSM_CREDIT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
 function makeMap(elementId) {
+  if (DEMO) {
+    const bounds = L.latLngBounds(DEMO.bounds);
+    const map = L.map(elementId, { scrollWheelZoom: true, minZoom: DEMO.minZoom, maxZoom: DEMO.maxZoom, maxBounds: bounds.pad(0.05), maxBoundsViscosity: 1 });
+    L.tileLayer(DEMO.tiles, {
+      minZoom: DEMO.minZoom, maxZoom: DEMO.maxZoom, maxNativeZoom: DEMO.maxNativeZoom, bounds, attribution: OSM_CREDIT
+    }).addTo(map);
+    return map;
+  }
   const map = L.map(elementId, { scrollWheelZoom: true });
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-  }).addTo(map);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: OSM_CREDIT }).addTo(map);
   return map;
 }
 
@@ -247,6 +277,7 @@ function directionsUrl(bar) {
 // Asks OpenStreetMap's free routing service for a walking path through the bars, in order.
 // Returns { legs: [{distance, duration}], points: [[lat, lng], ...], estimated: false }.
 async function fetchWalkingPath(bars) {
+  if (DEMO) return estimateWalkingPath(bars);
   const coords = bars.map((b) => `${b.lng},${b.lat}`).join(";");
   const url = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}?overview=full&geometries=geojson&steps=false`;
   const response = await fetch(url);
